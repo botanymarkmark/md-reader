@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/png;base64,__FAVICON__">
+<title>MD Reader</title>
+<style>
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --line:#e6e8eb;
+  --code-bg:#f6f8fa; --code-fg:#24292f; --accent:#2563eb; --mark:#fff6cc;
+  --quote:#f6f8fa; --shadow:0 1px 3px rgba(0,0,0,.06);
+}
+html[data-theme="dark"]{
+  --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --line:#21262d;
+  --code-bg:#161b22; --code-fg:#e6edf3; --accent:#58a6ff; --mark:#4b3f00;
+  --quote:#12171f; --shadow:0 1px 3px rgba(0,0,0,.5);
+}
+@media (prefers-color-scheme:dark){
+  html[data-theme="auto"]{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --line:#21262d;
+    --code-bg:#161b22; --code-fg:#e6edf3; --accent:#58a6ff; --mark:#4b3f00;
+    --quote:#12171f; --shadow:0 1px 3px rgba(0,0,0,.5);
+  }
+}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.75 -apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+#bar{
+  position:fixed; inset:0 0 auto 0; height:46px; z-index:20;
+  display:flex; align-items:center; gap:10px; padding:0 14px;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(10px);
+  border-bottom:1px solid var(--line);
+}
+#bar .t{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48vw}
+body.electron #bar{padding-right:152px;-webkit-app-region:drag}
+body.electron #bar button{-webkit-app-region:no-drag}
+body.electron #bar .t{max-width:38vw}
+#spacer{flex:1}
+#meta{color:var(--muted);font-size:12px;white-space:nowrap}
+button{
+  font:inherit; color:var(--muted); background:transparent; border:1px solid transparent;
+  border-radius:7px; padding:5px 9px; cursor:pointer; line-height:1;
+}
+button:hover{background:var(--code-bg); color:var(--fg)}
+button.icon{font-size:15px; padding:6px 9px}
+#progress{position:fixed;top:46px;left:0;height:2px;width:0;background:var(--accent);z-index:21;transition:width .08s linear}
+
+#wrap{display:flex; justify-content:center; padding:46px 20px 96px; transition:padding-left .12s}
+body.toc-open #wrap{padding-left:272px}
+#article{width:100%; max-width:760px; min-width:0}
+#article.empty{max-width:640px; display:flex; align-items:center; justify-content:center; min-height:calc(100vh - 160px)}
+
+#dropzone{text-align:center; color:var(--muted); user-select:none}
+#dropzone .big{
+  width:78px;height:78px;line-height:74px;margin:0 auto 20px;font-size:30px;
+  border:1.5px dashed var(--line); border-radius:50%; color:var(--muted);
+}
+#dropzone h2{margin:0 0 8px;font-size:17px;color:var(--fg);font-weight:600}
+#dropzone p{margin:0 0 20px;font-size:13.5px}
+#dropzone .hint{font-size:12px;opacity:.75;margin-top:18px;line-height:1.9}
+#pickBtn{
+  color:#fff;background:var(--accent);border:none;border-radius:8px;
+  padding:9px 18px;font-size:13.5px;font-weight:500;
+}
+#pickBtn:hover{filter:brightness(1.08)}
+
+/* ---------- 正文排版 ---------- */
+#article h1,#article h2,#article h3,#article h4,#article h5,#article h6{
+  line-height:1.35; margin:1.9em 0 .7em; font-weight:650; scroll-margin-top:64px;
+}
+#article h1{font-size:1.95em;margin-top:.2em;letter-spacing:-.01em}
+#article h2{font-size:1.45em;padding-bottom:.28em;border-bottom:1px solid var(--line)}
+#article h3{font-size:1.18em}
+#article h4{font-size:1.03em}
+#article h5,#article h6{font-size:.95em;color:var(--muted)}
+#article p{margin:0 0 1.05em}
+#article ul,#article ol{margin:0 0 1.05em; padding-left:1.65em}
+#article li{margin:.28em 0}
+#article li>ul,#article li>ol{margin:.28em 0 .1em}
+#article a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+#article a:hover{border-bottom-color:currentColor}
+#article strong{font-weight:650}
+#article del{color:var(--muted)}
+#article mark{background:var(--mark);color:inherit;padding:0 2px;border-radius:3px}
+#article hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+#article img{max-width:100%;height:auto;border-radius:6px;display:block;margin:1.2em auto}
+#article blockquote{
+  margin:0 0 1.05em; padding:.6em 1em; color:var(--muted);
+  background:var(--quote); border-left:3px solid color-mix(in srgb,var(--accent) 38%,var(--line));
+  border-radius:0 6px 6px 0;
+}
+#article blockquote>:last-child{margin-bottom:0}
+#article code{
+  font-family:ui-monospace,"Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+  font-size:.875em; background:var(--code-bg); color:var(--code-fg);
+  padding:.16em .38em; border-radius:4px;
+}
+#article pre{
+  background:var(--code-bg); border:1px solid var(--line); border-radius:8px;
+  padding:13px 15px; overflow:auto; margin:0 0 1.15em; position:relative;
+}
+#article pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;color:var(--code-fg)}
+.copy{
+  position:absolute;top:6px;right:6px;font-size:11px;padding:3px 7px;border-radius:5px;
+  opacity:0;transition:opacity .12s;background:var(--bg);border:1px solid var(--line)
+}
+pre:hover .copy{opacity:1}
+#article table{border-collapse:collapse;margin:0 0 1.2em;font-size:.94em;display:block;overflow-x:auto}
+#article th,#article td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top}
+#article th{background:var(--quote);font-weight:600;white-space:nowrap}
+#article tr:nth-child(2n) td{background:color-mix(in srgb,var(--code-bg) 55%,transparent)}
+#article input[type=checkbox]{margin:0 .45em 0 0;vertical-align:-.08em;accent-color:var(--accent)}
+#article .task-list-item{list-style:none;margin-left:-1.35em}
+#article kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 5px;font-size:.85em;background:var(--quote)}
+
+/* ---------- 目录 ---------- */
+#toc{
+  position:fixed; top:46px; left:0; bottom:0; width:252px; overflow:auto; padding:22px 10px 40px 18px;
+  border-right:1px solid var(--line); background:var(--bg); z-index:15;
+}
+#toc.hidden{display:none}
+#toc .tt{font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:0 0 10px 8px}
+#toc a{
+  display:block;font-size:13px;line-height:1.45;color:var(--muted);text-decoration:none;
+  padding:5px 8px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border-left:2px solid transparent;
+}
+#toc a:hover{background:var(--code-bg);color:var(--fg)}
+#toc a.lv2{padding-left:20px}
+#toc a.lv3{padding-left:34px;font-size:12.5px}
+#toc a.on{color:var(--accent);border-left-color:var(--accent);background:var(--code-bg)}
+
+#drop{
+  position:fixed;inset:0;z-index:50;display:none;place-items:center;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(2px);
+  font-size:15px;color:var(--accent);font-weight:600;
+}
+#drop.on{display:grid}
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,10px);z-index:60;
+  background:var(--fg);color:var(--bg);font-size:12.5px;padding:7px 14px;border-radius:8px;
+  opacity:0;pointer-events:none;transition:.18s;
+}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:900px){
+  #toc{display:none}
+  #wrap{padding:34px 16px 80px}
+}
+@media print{
+  #bar,#toc,#progress,#toast,#drop{display:none!important}
+  #wrap{padding:0}
+  #article{max-width:none}
+  a{color:inherit;text-decoration:underline}
+  pre,table,blockquote{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<!--INJECT-->
+
+<div id="bar">
+  <button class="icon" id="btnToc" title="目录 (T)">☰</button>
+  <div class="t" id="name">MD Reader</div>
+  <div id="spacer"></div>
+  <span id="meta"></span>
+  <button class="icon" id="btnTheme" title="主题 (D)">◐</button>
+  <button id="btnOpen" title="打开 Markdown (Ctrl+O)">打开</button>
+</div>
+<div id="progress"></div>
+
+<div id="wrap">
+  <aside id="toc" class="hidden"><div class="tt">目录</div><div id="tocList"></div></aside>
+  <main id="article" class="empty">
+    <div id="dropzone">
+      <div class="big">⤓</div>
+      <h2>把 Markdown 文件拖进来</h2>
+      <p>支持 .md / .markdown / .mdown，整篇即时渲染</p>
+      <button id="pickBtn">选择文件</button>
+      <div class="hint">
+        想显示文中的本地图片？把图片和 .md 一起拖进来，或点“选择文件”时多选<br>
+        Ctrl+O 打开 · T 目录 · D 换主题
+      </div>
+    </div>
+  </main>
+</div>
+
+<input type="file" id="fileInput" accept=".md,.markdown,.mdown,.mkd,.txt,text/markdown" multiple hidden>
+<div id="drop">松开打开</div>
+<div id="toast"></div>
+
+<script>/*__MARKDOWN_IT__*/</script>
+<script>
+(function(){
+  'use strict';
+
+  var article = document.getElementById('article');
+  var tocEl   = document.getElementById('toc');
+  var tocList = document.getElementById('tocList');
+  var nameEl  = document.getElementById('name');
+  var metaEl  = document.getElementById('meta');
+  var bar     = document.getElementById('progress');
+  var dropEl  = document.getElementById('drop');
+  var toastEl = document.getElementById('toast');
+
+  /* ---------- markdown-it ---------- */
+  var md = window.markdownit({ html: true, linkify: true, breaks: false });
+
+  // 默认只放行 data:image/(gif|png|jpeg|webp)，svg 内联图会被丢掉。
+  // 本地阅读场景下允许 data:（html:true 本来就能写内联 HTML），仍拦截脚本协议。
+  md.validateLink = function(url){
+    return !/^(vbscript|javascript|file):/i.test(url);
+  };
+
+  // 任务列表
+  md.core.ruler.after('inline', 'task-list', function(state){
+    var t = state.tokens;
+    for (var i = 0; i < t.length; i++) {
+      if (t[i].type !== 'inline') continue;
+      var open = t[i - 1], li = t[i - 2];
+      if (!open || open.type !== 'paragraph_open' || !li || li.type !== 'list_item_open') continue;
+      var m = /^\[([ xX])\]\s+/.exec(t[i].content);
+      if (!m) continue;
+      var kids = t[i].children || [];
+      if (kids.length && kids[0].type === 'text') kids[0].content = kids[0].content.slice(m[0].length);
+      var box = new state.Token('html_inline', '', 0);
+      box.content = '<input type="checkbox" disabled' + (m[1] !== ' ' ? ' checked' : '') + '>';
+      kids.unshift(box);
+      t[i].children = kids;
+      t[i].content = t[i].content.slice(m[0].length);
+      li.attrJoin('class', 'task-list-item');
+    }
+  });
+
+  /* ---------- 工具 ---------- */
+  var assets = new Map();          // 相对路径 / 文件名 -> blob url
+  var baseDir = '';                // 桌面版：文档所在目录（file:///...）
+
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('on');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ toastEl.classList.remove('on'); }, 1600);
+  }
+
+  async function readText(file){
+    var buf = await file.arrayBuffer();
+    var txt;
+    try { txt = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+    catch (e) {
+      try { txt = new TextDecoder('gbk').decode(buf); } catch (e2) { txt = new TextDecoder('utf-8').decode(buf); }
+    }
+    return txt.replace(/^\uFEFF/, '');
+  }
+
+  function addAsset(file){
+    var key = (file.webkitRelativePath || file.name).replace(/^[^/]+\//, '');
+    var url = URL.createObjectURL(file);
+    assets.set(key, url);
+    var base = key.split('/').pop();
+    if (!assets.has(base)) assets.set(base, url);
+  }
+
+  function resolveImages(){
+    article.querySelectorAll('img').forEach(function(img){
+      var raw = img.getAttribute('src') || '';
+      if (/^(https?:|data:|blob:|file:|\/\/)/i.test(raw)) return;
+      var key = decodeURI(raw).replace(/^\.\//, '').replace(/^\//, '');
+      var hit = assets.get(key) || assets.get(key.split('/').pop());
+      if (hit) { img.src = hit; return; }
+      // 桌面版：按文档所在目录解析相对路径
+      if (baseDir) img.src = baseDir + '/' + encodeURI(key).replace(/#/g, '%23').replace(/\?/g, '%3F');
+    });
+  }
+
+  function stats(text){
+    var cjk = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+    var words = (text.replace(/[\u4e00-\u9fa5]/g, ' ').match(/[A-Za-z0-9_'-]+/g) || []).length;
+    var mins = Math.max(1, Math.round((cjk + words) / 380));
+    return (cjk ? cjk + ' 字' : words + ' 词') + ' · 约 ' + mins + ' 分钟';
+  }
+
+  function wrapTables(){
+    article.querySelectorAll('table').forEach(function(tb){
+      var d = document.createElement('div');
+      d.style.overflowX = 'auto';
+      tb.parentNode.insertBefore(d, tb);
+      d.appendChild(tb);
+    });
+  }
+
+  function addCopy(){
+    article.querySelectorAll('pre').forEach(function(pre){
+      var b = document.createElement('button');
+      b.className = 'copy'; b.textContent = '复制';
+      b.onclick = function(){
+        var code = pre.querySelector('code');
+        navigator.clipboard.writeText(code ? code.textContent : pre.textContent)
+          .then(function(){ b.textContent = '已复制'; setTimeout(function(){ b.textContent = '复制'; }, 1200); });
+      };
+      pre.appendChild(b);
+    });
+  }
+
+  /* ---------- 目录 ---------- */
+  var tocLinks = [];
+  var observer = null;
+  var hasToc = false;
+
+  function setToc(show){
+    tocEl.classList.toggle('hidden', !show);
+    document.body.classList.toggle('toc-open', show);
+  }
+
+  function buildToc(){
+    var heads = [].slice.call(article.querySelectorAll('h1,h2,h3'));
+    tocList.innerHTML = '';
+    tocLinks = [];
+    if (observer) { observer.disconnect(); observer = null; }
+    hasToc = heads.length >= 2;
+    if (!hasToc) { setToc(false); return; }
+
+    heads.forEach(function(h, i){
+      h.id = 'h-' + i;
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.className = h.tagName === 'H1' ? 'lv1' : h.tagName === 'H2' ? 'lv2' : 'lv3';
+      a.onclick = function(e){
+        e.preventDefault();
+        h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#' + h.id);
+      };
+      tocList.appendChild(a);
+      tocLinks.push({ el: a, h: h });
+    });
+
+    if ('IntersectionObserver' in window) {
+      observer = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if (!en.isIntersecting) return;
+          var id = en.target.id;
+          tocLinks.forEach(function(x){ x.el.classList.toggle('on', x.h.id === id); });
+        });
+      }, { rootMargin: '-60px 0px -70% 0px' });
+      heads.forEach(function(h){ observer.observe(h); });
+    }
+  }
+
+  /* ---------- 渲染 ---------- */
+  function render(text, fileName){
+    article.classList.remove('empty');
+    article.innerHTML = md.render(text);
+    wrapTables();
+    addCopy();
+    resolveImages();
+    buildToc();
+
+    nameEl.textContent = fileName;
+    document.title = fileName;
+    metaEl.textContent = stats(text);
+    window.scrollTo(0, 0);
+
+    var show = hasToc && (tocForced === true || (tocForced !== false && window.innerWidth >= 1280));
+    setToc(show);
+  }
+
+  /* ---------- 打开文件 ---------- */
+  async function openFiles(fileList){
+    var files = [].slice.call(fileList || []);
+    if (!files.length) return;
+
+    var docs = files.filter(function(f){ return /\.(md|markdown|mdown|mkd|txt)$/i.test(f.name); });
+    if (!docs.length) { toast('没有找到 Markdown 文件'); return; }
+
+    files.forEach(function(f){ if (docs.indexOf(f) < 0) addAsset(f); });
+
+    var doc = docs[0];
+    if (docs.length > 1) toast('打开了 ' + doc.name + '（共 ' + docs.length + ' 个）');
+
+    // 桌面版：File 对象带真实路径，可据此解析相对图片
+    if (typeof doc.path === 'string' && doc.path) {
+      baseDir = 'file:///' + doc.path.replace(/\\/g, '/').replace(/\/[^/]*$/, '');
+    }
+
+    var text = await readText(doc);
+    render(text, doc.name);
+  }
+
+  /* ---------- 事件 ---------- */
+  var fileInput = document.getElementById('fileInput');
+
+  document.getElementById('pickBtn').onclick = function(){ fileInput.click(); };
+  document.getElementById('btnOpen').onclick = function(){ fileInput.click(); };
+  fileInput.onchange = function(){ openFiles(fileInput.files); fileInput.value = ''; };
+
+  var tocForced = null;
+  document.getElementById('btnToc').onclick = function(){
+    if (!hasToc) { toast('这篇文档没有可用的标题'); return; }
+    tocForced = tocEl.classList.contains('hidden');
+    setToc(tocForced);
+  };
+
+  var themeBtn = document.getElementById('btnTheme');
+  function applyTheme(v){
+    document.documentElement.setAttribute('data-theme', v);
+    themeBtn.textContent = v === 'auto' ? '◐' : v === 'dark' ? '☾' : '☀';
+    try { localStorage.setItem('mdreader.theme', v); } catch (e) {}
+  }
+  themeBtn.onclick = function(){
+    var cur = document.documentElement.getAttribute('data-theme') || 'auto';
+    applyTheme(cur === 'auto' ? 'light' : cur === 'light' ? 'dark' : 'auto');
+  };
+  try { applyTheme(localStorage.getItem('mdreader.theme') || 'auto'); } catch (e) { applyTheme('auto'); }
+
+  document.addEventListener('keydown', function(e){
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
+      e.preventDefault(); fileInput.click(); return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 't' || e.key === 'T') { document.getElementById('btnToc').click(); }
+    if (e.key === 'd' || e.key === 'D') { themeBtn.click(); }
+  });
+
+  /* 拖放 */
+  var dragDepth = 0;
+  window.addEventListener('dragenter', function(e){
+    if (!e.dataTransfer || [].indexOf.call(e.dataTransfer.types, 'Files') < 0) return;
+    dragDepth++; dropEl.classList.add('on');
+  });
+  window.addEventListener('dragover', function(e){ e.preventDefault(); });
+  window.addEventListener('dragleave', function(){ if (--dragDepth <= 0) { dragDepth = 0; dropEl.classList.remove('on'); } });
+  window.addEventListener('drop', function(e){
+    e.preventDefault(); dragDepth = 0; dropEl.classList.remove('on');
+    if (e.dataTransfer && e.dataTransfer.files.length) openFiles(e.dataTransfer.files);
+  });
+
+  /* 窗口尺寸变化时重新决定目录显隐（用户手动切换过就不再干预） */
+  window.addEventListener('resize', function(){
+    if (hasToc && tocForced === null) setToc(window.innerWidth >= 1280);
+  });
+
+  /* 阅读进度 */
+  var ticking = false;  window.addEventListener('scroll', function(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){
+      var h = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.width = (h > 0 ? Math.min(100, (window.scrollY / h) * 100) : 0) + '%';
+      ticking = false;
+    });
+  }, { passive: true });
+
+  /* 外部链接新窗口 */
+  article.addEventListener('click', function(e){
+    var a = e.target.closest ? e.target.closest('a') : null;
+    if (a && /^https?:/i.test(a.getAttribute('href') || '')) { a.target = '_blank'; a.rel = 'noopener'; }
+  });
+
+  /* 供桌面版 / 启动器调用 */
+  window.__mdOpen = function(text, name, dir){
+    if (typeof dir === 'string' && dir) baseDir = dir.replace(/\/$/, '');
+    render(text, name || 'Markdown');
+  };
+
+  /* 桌面版：给窗口按钮留位置 */
+  try {
+    if (window.process && window.process.versions && window.process.versions.electron) {
+      document.body.classList.add('electron');
+    }
+  } catch (e) {}
+
+  if (typeof window.__MD__ === 'string') {
+    window.__mdOpen(window.__MD__, window.__MD_NAME__ || 'Markdown', window.__MD_DIR__ || '');
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "md-reader",
+  "version": "1.0.0",
+  "description": "A 7 MB Markdown reader for Windows: no bundled browser engine, renders with the system Edge/Chrome.",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "markdown-it": "^13.0.2"
+  }
+}

@@ -1,0 +1,29 @@
+# 依赖
+node_modules/
+
+# 打包产物（用 PyInstaller 本地生成，发布时传到 Release）
+dist-small/
+dist-exe/
+build/
+*.spec
+
+# 试验性的 Electron 版本，不随仓库发布
+app/
+build-exe.js
+
+# 本地测试脚本与产物
+test/
+
+# Python
+__pycache__/
+*.pyc
+
+# 日志
+*.log
+*.rc
+exe-*.txt
+build-*.txt
+
+# 系统
+.DS_Store
+Thumbs.db
