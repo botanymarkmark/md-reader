@@ -8,12 +8,13 @@
 
 ## 下载
 
-去 [Releases](../../releases/latest) 拿 `MD Reader.exe`，放哪儿都能跑，不需要安装。
+去 [Releases](../../releases/latest) 拿 `MD.Reader.exe`，放哪儿都能跑，不需要安装。
+（GitHub 会把附件名里的空格变成点，本地叫 `MD Reader.exe`，是同一个文件。）
 
 | 文件 | 体积 | 说明 |
 | --- | --- | --- |
-| `MD Reader.exe` | **7.3 MB** | 独立窗口，可设为 `.md` 的默认打开方式 |
-| `MD Reader.html` | **118 KB** | 单文件，浏览器打开，拖文件进去 |
+| `MD.Reader.exe` | **7.3 MB** | 独立窗口，可设为 `.md` 的默认打开方式 |
+| `MD.Reader.html` | **118 KB** | 单文件，浏览器打开，拖文件进去 |
 
 ## 为什么只有 7 MB
 
@@ -40,11 +41,11 @@ Electron 版的同类工具要 250 MB，其中 99% 是 Chromium。这里一个�
 ## 用法
 
 ```
-MD Reader.exe 某文档.md      直接看这篇
-MD Reader.exe                打开空白页，拖文件进去
+MD.Reader.exe 某文档.md      直接看这篇
+MD.Reader.exe                打开空白页，拖文件进去
 ```
 
-设成默认：右键任意 `.md` → 打开方式 → 选择其他应用 → 找到 `MD Reader.exe` → 勾「始终」。
+设成默认：右键任意 `.md` → 打开方式 → 选择其他应用 → 找到 `MD.Reader.exe` → 勾「始终」。
 
 注册表项写在 `HKCU`，不需要管理员；撤销方法见下方「默认程序」。
 

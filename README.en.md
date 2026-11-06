@@ -8,12 +8,13 @@
 
 ## Download
 
-Grab `MD Reader.exe` from [Releases](../../releases/latest). It is portable — put it anywhere, no install needed.
+Grab `MD.Reader.exe` from [Releases](../../releases/latest). It is portable — put it anywhere, no install needed.
+(GitHub turns spaces into dots in asset names; locally it is `MD Reader.exe`, same file.)
 
 | File | Size | What it is |
 | --- | --- | --- |
-| `MD Reader.exe` | **7.3 MB** | Standalone window, can be set as the default app for `.md` |
-| `MD Reader.html` | **118 KB** | Single file, open in a browser and drop a file in |
+| `MD.Reader.exe` | **7.3 MB** | Standalone window, can be set as the default app for `.md` |
+| `MD.Reader.html` | **118 KB** | Single file, open in a browser and drop a file in |
 
 ## Why only 7 MB
 
@@ -42,11 +43,11 @@ usage is Edge's too.
 ## Usage
 
 ```
-MD Reader.exe some-document.md    open that file
-MD Reader.exe                     open an empty page, drop a file in
+MD.Reader.exe some-document.md    open that file
+MD.Reader.exe                     open an empty page, drop a file in
 ```
 
-Set as default: right-click any `.md` → Open with → Choose another app → pick `MD Reader.exe` →
+Set as default: right-click any `.md` → Open with → Choose another app → pick `MD.Reader.exe` →
 check "Always use this app".
 
 All registry entries live under `HKCU`, no admin rights required. See "Default app" below to undo.
