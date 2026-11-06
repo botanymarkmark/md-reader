@@ -1,0 +1,4 @@
+* text=auto
+
+# 构建产物不算语言统计，否则仓库会被标成 HTML
+dist/MD Reader.html linguist-generated=true
